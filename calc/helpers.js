@@ -1,5 +1,5 @@
 function calculateDistance(rssi) {
-  var txPower = -59; //hard coded power value. Usually ranges between -59 to -65
+  var txPower = -64; //hard coded power value. Usually ranges between -59 to -65
 
   if (rssi == 0) {
     return -1.0;
