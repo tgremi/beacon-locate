@@ -1,0 +1,17 @@
+{
+  "name": "beacon-traking",
+  "version": "0.0.1",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "thallesgremi@gmail.com",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.16.4",
+    "noble": "git+https://github.com/jacobrosenthal/noble.git#highsierra",
+    "node-beacon-scanner": "^0.1.0",
+    "socket.io": "^2.1.1"
+  }
+}
