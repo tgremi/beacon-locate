@@ -14,6 +14,15 @@ function calculateDistance(rssi) {
   }
 }
 
+function getRange(txCalibratedPower, rssi) {
+  var ratio_db = txCalibratedPower - rssi;
+  var ratio_linear = Math.pow(10, ratio_db / 10);
+
+  var r = Math.sqrt(ratio_linear);
+  return r;
+}
+
 module.exports = {
-  calculateDistance
+  calculateDistance,
+  getRange
 };
