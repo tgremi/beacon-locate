@@ -1,10 +1,9 @@
 const noble = require("noble");
 const BeaconScanner = require("node-beacon-scanner");
-const calculateDistance = require("./calc/helpers").calculateDistance
+const calculateDistance = require("./calc/helpers").getRange
 const scanner = new BeaconScanner({ 'noble': noble });
 let buffer = [];
-
-
+let rssiBuffer = []
 
 const mountBufferFromNoble = (stop) => {
   noble.on("discover", function (peripheral) {
@@ -23,6 +22,7 @@ const mountBufferFromBeaconScanner = async (stop) => {
   scanner
     .startScan()
     .then(() => {
+      rssiBuffer = []
       console.log("Scanning for BLE devices...");
     })
     .catch(error => {
@@ -33,27 +33,40 @@ const mountBufferFromBeaconScanner = async (stop) => {
   scanner.onadvertisement = advertisement => {
     var beacon = advertisement["iBeacon"];
     beacon.rssi = advertisement["rssi"];
-    // console.log(JSON.stringify(beacon, null, "    "));
-    // console.log("\n \n \n  [RESULT] ")
-    // console.log(calculateDistance(beacon.rssi))
-    // console.log("\n \n \n")
-    let objData = {
-      minor: beacon.minor,
-      distance: calculateDistance(beacon.rssi),
-      rssi: beacon.rssi
-    }
-    console.log(objData)
 
-    buffer.push(objData)
-    console.log("[BUFFER]:")
-    console.log(buffer)
-    if (buffer.length >= 20) {
-
-      console.log("To no if")
+    rssiBuffer.push(advertisement["rssi"])
+    //Se já tivermos 10 RSSI
+    if (rssiBuffer.length == 10) {
+      console.log('buffer = ' + rssiBuffer)
       scanner.stopScan()
-      return buffer;
-    }
+      let total = 0
 
+      for (let i = 0; i < rssiBuffer.length; i++) {
+        total += rssiBuffer[i]
+      }
+
+      total = total / rssiBuffer.length
+      console.log('media = ' + total)
+      console.log("parse: ", parseInt(total))
+      let objData = {
+        minor: beacon.minor,
+        //distance: calculateDistance(-70, parseInt(total)),
+        distance: calculateDistance(-70, total),
+        rssi: total
+      }
+
+      //console.log(objData)
+
+      buffer.push(objData)
+      console.log("[BUFFER]:")
+      console.log(buffer)
+      if (buffer.length >= 15) {
+
+        console.log("To no if")
+
+        return buffer;
+      }
+    }
   };
 }
 
