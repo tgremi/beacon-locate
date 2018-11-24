@@ -1,8 +1,8 @@
 const noble = require("noble");
 const BeaconScanner = require("node-beacon-scanner");
 const calculateDistance = require("./calc/helpers").calculateDistance
-const scanner = new BeaconScanner();
-
+const scanner = new BeaconScanner({ 'noble': noble });
+let buffer = [];
 
 
 
@@ -19,19 +19,7 @@ const mountBufferFromNoble = (stop) => {
   noble.startScanning([], true);
 }
 
-const mountBufferFromBeaconScanner = (stop) => {
-
-  scanner.onadvertisement = advertisement => {
-    var beacon = advertisement["iBeacon"];
-    beacon.rssi = advertisement["rssi"];
-    console.log(JSON.stringify(beacon, null, "    "));
-    console.log("\n \n \n  [RESULT] ")
-    console.log(calculateDistance(beacon.rssi))
-    console.log("\n \n \n")
-  };
-
-
-
+const mountBufferFromBeaconScanner = async (stop) => {
   scanner
     .startScan()
     .then(() => {
@@ -40,13 +28,75 @@ const mountBufferFromBeaconScanner = (stop) => {
     .catch(error => {
       console.error(error);
     });
+
+
+  scanner.onadvertisement = advertisement => {
+    var beacon = advertisement["iBeacon"];
+    beacon.rssi = advertisement["rssi"];
+    // console.log(JSON.stringify(beacon, null, "    "));
+    // console.log("\n \n \n  [RESULT] ")
+    // console.log(calculateDistance(beacon.rssi))
+    // console.log("\n \n \n")
+    let objData = {
+      minor: beacon.minor,
+      distance: calculateDistance(beacon.rssi),
+      rssi: beacon.rssi
+    }
+    console.log(objData)
+
+    buffer.push(objData)
+    console.log("[BUFFER]:")
+    console.log(buffer)
+    if (buffer.length >= 20) {
+
+      console.log("To no if")
+      scanner.stopScan()
+      return buffer;
+    }
+
+  };
 }
 
-setInterval((arg) => {
-  console.log(arg)
-  mountBufferFromBeaconScanner()
-}, 5000);
 
+const calcArithmeticMean = async () => {
+  // let promise = new Promise((resolve, reject) => {
+  // let buffer = setInterval((arg) => {
+  let bufferFromMount = await mountBufferFromBeaconScanner();
+  // if (bufferFromMount && bufferFromMount.length >= 10) {
+  //   // clearInterval(bufferFromMount)
+  //   return bufferFromMount
+  // } else {
+  //   console.log("ERRO FROM ELSE")
+  // }
+  // }, 5000);
+  // console.log(bufferFromMount, "FROM MOUNT")
+  // if (bufferFromMount.length > 10) {
+  // return bufferFromMount
+  // } else {
+  //   reject("ERROR")
+  // }
+  // })
+
+  // try {
+  // let result = await promise
+  let totalDistance = 0;
+  for (let i = 0; bufferFromMount.length < i; i++) {
+    totalDistance = totalDistance + result[i].distance
+  }
+
+
+  console.log(" \n \n \n \n total: ")
+  console.log(totalDistance)
+  console.log(" \n \n \n \n")
+  // }
+  // // catch (e) {
+  // //   console.log(e)
+  // // }
+
+}
+
+
+calcArithmeticMean()
 
 // setInterval((arg) => {
 //   console.log(arg)
