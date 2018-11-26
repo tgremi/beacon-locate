@@ -1,117 +1,93 @@
 const noble = require("noble");
 const BeaconScanner = require("node-beacon-scanner");
-const calculateDistance = require("./calc/helpers").getRange
-const scanner = new BeaconScanner({ 'noble': noble });
+const calculateDistance = require("./calc/helpers").getRange;
+const { postDataInServer } = require("./request");
+const scanner = new BeaconScanner({ noble: noble });
 let buffer = [];
-let rssiBuffer = []
+let rssiBufferPointA = [];
+let rssiBufferPointB = [];
+let rssiBufferPointC = [];
 
-const mountBufferFromNoble = (stop) => {
-  noble.on("discover", function (peripheral) {
-    console.log({ mac: peripheral.uuid, rssi: peripheral.rssi });
-    if (peripheral.uuid == "72bf02b4266e") {
-      console.log({ mac: peripheral.uuid, rssi: peripheral.rssi });
-      console.log("\n \n \n  [RESULT from NOBLE] ")
-      console.log(calculateDistance(peripheral.rssi))
-      console.log("\n \n \n")
-    }
-  });
-  noble.startScanning([], true);
-}
+let beaconsLocate = process.env.point || [4660, 4661, 4662];
 
-const mountBufferFromBeaconScanner = async (stop) => {
+const mountBufferFromBeaconScanner = async stop => {
   scanner
     .startScan()
     .then(() => {
-      rssiBuffer = []
+      rssiBuffer = [];
       console.log("Scanning for BLE devices...");
     })
     .catch(error => {
       console.error(error);
     });
 
-
-  scanner.onadvertisement = advertisement => {
-    var beacon = advertisement["iBeacon"];
+  scanner.onadvertisement = async advertisement => {
+    let beacon = advertisement["iBeacon"];
     beacon.rssi = advertisement["rssi"];
 
-    rssiBuffer.push(advertisement["rssi"])
-    //Se já tivermos 10 RSSI
-    if (rssiBuffer.length == 10) {
-      console.log('buffer = ' + rssiBuffer)
-      scanner.stopScan()
-      let total = 0
-
-      for (let i = 0; i < rssiBuffer.length; i++) {
-        total += rssiBuffer[i]
+    switch (beacon.minor) {
+      case beaconsLocate[0]: {
+        console.log("[CASO 1]");
+        console.log(beacon.minor);
+        rssiBufferPointA.push({
+          rssi: advertisement["rssi"],
+          minor: beacon.minor
+        });
+        break;
       }
-
-      total = total / rssiBuffer.length
-      console.log('media = ' + total)
-      console.log("parse: ", parseInt(total))
-      let objData = {
-        minor: beacon.minor,
-        //distance: calculateDistance(-70, parseInt(total)),
-        distance: calculateDistance(-70, total),
-        rssi: total
+      case beaconsLocate[1]: {
+        console.log("[CASO 2]");
+        console.log(beacon.minor);
+        rssiBufferPointB.push({
+          rssi: advertisement["rssi"],
+          minor: beacon.minor
+        });
+        break;
       }
-
-      //console.log(objData)
-
-      buffer.push(objData)
-      console.log("[BUFFER]:")
-      console.log(buffer)
-      if (buffer.length >= 15) {
-
-        console.log("To no if")
-
-        return buffer;
+      case beaconsLocate[2]: {
+        console.log("[CASO 3]");
+        console.log(beacon.minor);
+        rssiBufferPointC.push({
+          rssi: advertisement["rssi"],
+          minor: beacon.minor
+        });
+        break;
       }
     }
+
+    if (rssiBufferPointA.length == 10) {
+      console.log("[PONTO - A]");
+      console.log(rssiBufferPointA);
+      await postDataInServer(rssiBufferPointA, (error, success) => {
+        if (error) {
+          console.log(error);
+        } else {
+          rssiBufferPointA = [];
+          console.log("[Clear array]: ", rssiBufferPointA)
+        }
+      });
+    } else if (rssiBufferPointB.length == 10) {
+      console.log("[PONTO - B]");
+      await postDataInServer(rssiBufferPointB, (error, success) => {
+        if (error) {
+          console.log(error);
+        } else {
+          rssiBufferPointB = [];
+          console.log("[Clear array]: ", rssiBufferPointB)
+        }
+      });
+    } else if (rssiBufferPointC.length == 10) {
+      console.log("[PONTO - C]");
+      await postDataInServer(rssiBufferPointC, (error, success) => {
+        if (error) {
+          console.log(error);
+        } else {
+          rssiBufferPointC = [];
+          console.log("[Clear array]: ", rssiBufferPointC)
+        }
+      });
+    }
   };
-}
+};
 
-
-const calcArithmeticMean = async () => {
-  // let promise = new Promise((resolve, reject) => {
-  // let buffer = setInterval((arg) => {
-  let bufferFromMount = await mountBufferFromBeaconScanner();
-  // if (bufferFromMount && bufferFromMount.length >= 10) {
-  //   // clearInterval(bufferFromMount)
-  //   return bufferFromMount
-  // } else {
-  //   console.log("ERRO FROM ELSE")
-  // }
-  // }, 5000);
-  // console.log(bufferFromMount, "FROM MOUNT")
-  // if (bufferFromMount.length > 10) {
-  // return bufferFromMount
-  // } else {
-  //   reject("ERROR")
-  // }
-  // })
-
-  // try {
-  // let result = await promise
-  let totalDistance = 0;
-  for (let i = 0; bufferFromMount.length < i; i++) {
-    totalDistance = totalDistance + result[i].distance
-  }
-
-
-  console.log(" \n \n \n \n total: ")
-  console.log(totalDistance)
-  console.log(" \n \n \n \n")
-  // }
-  // // catch (e) {
-  // //   console.log(e)
-  // // }
-
-}
-
-
-calcArithmeticMean()
-
-// setInterval((arg) => {
-//   console.log(arg)
-//   mountBufferFromNoble()
-// }, 5000);
+mountBufferFromBeaconScanner();
